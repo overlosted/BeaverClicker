@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BeaverClicker</title>
+<style>
+  :root{
+    --bg:#100b08;
+    --panel:#1c150f;
+    --panel2:#241b13;
+    --border:#3a2c1e;
+    --beaver:#c8935b;
+    --beaver-dark:#a5713c;
+    --beaver-light:#e8c79a;
+    --beaver-glow: rgba(200,147,91,0.35);
+    --water:#3fa9a0;
+    --water-dark:#2c7a73;
+    --text:#f5efe6;
+    --muted:#a89a86;
+    --ok:#3ecb6e;
+    --err:#ff5a5a;
+    --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%, rgba(63,169,160,0.10), transparent 45%),
+      radial-gradient(circle at 85% 100%, rgba(200,147,91,0.10), transparent 45%),
+      var(--bg);
+    color:var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+    min-height:100vh;
+  }
+  .hidden{display:none !important;}
+
+  /* ---------- AUTH SCREEN ---------- */
+  .auth-screen{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:20px;
+  }
+  .auth-box{
+    width:100%;max-width:380px;
+    background:var(--panel);border:1px solid var(--border);
+    border-radius:20px;padding:34px 28px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .auth-logo{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:24px;}
+  .auth-logo svg{width:58px;height:58px;filter:drop-shadow(0 0 16px var(--beaver-glow));}
+  .auth-logo .title{font-size:22px;font-weight:900;letter-spacing:.5px;text-align:center;}
+  .auth-logo .title span{color:var(--beaver);}
+  .auth-logo .sub{font-size:12.5px;color:var(--muted);text-align:center;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px;font-weight:600;}
+  .field input{
+    width:100%;background:var(--panel2);border:1px solid var(--border);
+    color:var(--text);padding:11px 12px;border-radius:10px;font-size:14px;
+    outline:none;transition:border-color .15s;font-family:inherit;
+  }
+  .field input:focus{border-color:var(--beaver);}
+  .btn{
+    width:100%;background:var(--beaver);color:#1a1108;border:none;
+    padding:12px;border-radius:10px;font-weight:800;font-size:14.5px;
+    cursor:pointer;letter-spacing:.3px;transition:transform .1s, background .15s;
+  }
+  .btn:hover{background:var(--beaver-light);}
+  .btn:active{transform:scale(0.98);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .msg{
+    font-size:13px;padding:10px 12px;border-radius:8px;margin-bottom:14px;
+    display:none;
+  }
+  .msg.error{background:rgba(255,90,90,0.1);color:#ff9a9a;border:1px solid rgba(255,90,90,0.3);display:block;}
+  .msg.ok{background:rgba(62,203,110,0.1);color:#7fe3a0;border:1px solid rgba(62,203,110,0.3);display:block;}
+  .auth-note{font-size:12px;color:var(--muted);text-align:center;margin-top:16px;line-height:1.5;}
+  .config-warning{
+    background:rgba(200,147,91,0.1);border:1px solid var(--beaver);
+    color:#f0d9b5;padding:14px 16px;border-radius:10px;font-size:13px;
+    margin:0 auto 20px;max-width:600px;line-height:1.5;
+  }
+
+  /* ---------- TOP BAR ---------- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 22px;background:var(--panel);
+    border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;
+    flex-wrap:wrap;gap:10px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;}
+  .brand svg{width:26px;height:26px;}
+  .brand span span{color:var(--beaver);}
+  .user-chip{
+    display:flex;align-items:center;gap:10px;
+    background:var(--panel2);border:1px solid var(--border);
+    padding:6px 8px 6px 12px;border-radius:999px;
+  }
+  .user-chip .name{font-size:13px;font-weight:700;}
+  .user-chip .mini-avatar{
+    width:26px;height:26px;border-radius:50%;background:var(--beaver);
+    color:#1a1108;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:800;flex-shrink:0;overflow:hidden;
+  }
+  .user-chip .mini-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
+  .user-chip .mini-avatar svg{width:16px;height:16px;}
+  .logout-btn{
+    background:transparent;border:1px solid var(--border);color:var(--muted);
+    width:30px;height:30px;border-radius:50%;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .logout-btn:hover{color:var(--beaver);border-color:var(--beaver);}
+
+  /* ---------- LAYOUT ---------- */
+  .game-wrap{
+    max-width:980px;margin:0 auto;padding:28px 20px 60px;
+    display:grid;grid-template-columns:1.1fr 0.9fr;gap:22px;
+  }
+  @media (max-width:760px){ .game-wrap{grid-template-columns:1fr;} }
+
+  .stat-row{
+    display:flex;align-items:baseline;gap:10px;justify-content:center;
+    margin-bottom:6px;
+  }
+  .stick-count{font-size:38px;font-weight:900;letter-spacing:.5px;}
+  .stick-count .unit{font-size:16px;color:var(--muted);font-weight:700;}
+  .rate-row{text-align:center;color:var(--muted);font-size:13px;margin-bottom:18px;}
+  .rate-row b{color:var(--water);}
+
+  /* ---------- POOL / CLICKER ---------- */
+  .pool-card{
+    background:var(--panel);border:1px solid var(--border);
+    border-radius:var(--radius);padding:22px;
+    display:flex;flex-direction:column;align-items:center;
+  }
+  .pool{
+    position:relative;width:100%;max-width:300px;aspect-ratio:1/1;
+    border-radius:50%;
+    background:radial-gradient(circle at 50% 40%, var(--water) 0%, var(--water-dark) 60%, #1c4844 100%);
+    box-shadow:inset 0 0 30px rgba(0,0,0,0.35), 0 0 40px rgba(63,169,160,0.15);
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;margin-top:6px;
+  }
+  .ripple{
+    position:absolute;border:2px solid rgba(255,255,255,0.35);
+    border-radius:50%;width:40%;height:40%;
+    opacity:0;pointer-events:none;
+  }
+  .ripple.animate{animation:rippleOut .7s ease-out forwards;}
+  @keyframes rippleOut{
+    0%{transform:scale(0.4);opacity:.6;}
+    100%{transform:scale(2.6);opacity:0;}
+  }
+  .steam{
+    position:absolute;bottom:58%;width:10px;height:26px;border-radius:50%;
+    background:rgba(255,255,255,0.18);filter:blur(3px);
+    animation:steamRise 3.2s ease-in infinite;
+  }
+  .steam.s2{left:38%;animation-delay:.8s;}
+  .steam.s3{left:58%;animation-delay:1.6s;}
+  .steam.s1{left:48%;}
+  @keyframes steamRise{
+    0%{transform:translateY(0) scale(1);opacity:0;}
+    15%{opacity:.5;}
+    100%{transform:translateY(-70px) scale(1.6);opacity:0;}
+  }
+  .beaver-btn{
+    background:none;border:none;cursor:pointer;padding:0;
+    width:72%;position:relative;z-index:2;
+    transition:transform .08s ease;
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,0.35));
+  }
+  .beaver-btn:active{transform:scale(0.93) rotate(-1deg);}
+  .beaver-btn.bump{animation:bump .18s ease;}
+  @keyframes bump{
+    0%{transform:scale(1);} 40%{transform:scale(1.08);} 100%{transform:scale(1);}
+  }
+  .floater{
+    position:absolute;font-weight:800;color:var(--beaver-light);
+    font-size:15px;pointer-events:none;z-index:5;
+    animation:floatUp 1s ease-out forwards;
+    text-shadow:0 2px 6px rgba(0,0,0,0.5);
+  }
+  @keyframes floatUp{
+    0%{transform:translateY(0);opacity:1;}
+    100%{transform:translateY(-60px);opacity:0;}
+  }
+  .click-hint{margin-top:14px;font-size:12.5px;color:var(--muted);text-align:center;}
+  .click-power{margin-top:4px;font-size:12.5px;color:var(--beaver);text-align:center;font-weight:700;}
+
+  /* ---------- SHOP ---------- */
+  .shop-card{
+    background:var(--panel);border:1px solid var(--border);
+    border-radius:var(--radius);padding:20px;
+  }
+  .shop-card h2{margin:0 0 4px;font-size:17px;}
+  .shop-card p.muted{color:var(--muted);font-size:12.5px;margin:0 0 16px;}
+  .upgrade{
+    display:flex;align-items:center;gap:12px;
+    background:var(--panel2);border:1px solid var(--border);
+    border-radius:12px;padding:12px 14px;margin-bottom:10px;
+    transition:border-color .15s;
+  }
+  .upgrade.affordable{border-color:rgba(200,147,91,0.5);}
+  .upgrade .u-icon{
+    width:40px;height:40px;border-radius:50%;background:var(--panel);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    border:1px solid var(--border);color:var(--beaver);
+  }
+  .upgrade .u-icon svg{width:20px;height:20px;}
+  .upgrade .u-info{flex:1;min-width:0;}
+  .upgrade .u-name{font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:6px;}
+  .upgrade .u-owned{
+    font-size:10.5px;color:var(--muted);background:var(--panel);
+    border:1px solid var(--border);border-radius:999px;padding:1px 7px;font-weight:700;
+  }
+  .upgrade .u-desc{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .upgrade .u-buy{
+    background:var(--beaver);color:#1a1108;border:none;border-radius:9px;
+    padding:9px 12px;font-weight:800;font-size:12.5px;cursor:pointer;
+    flex-shrink:0;min-width:78px;text-align:center;transition:background .15s, transform .1s;
+  }
+  .upgrade .u-buy:hover{background:var(--beaver-light);}
+  .upgrade .u-buy:active{transform:scale(0.96);}
+  .upgrade .u-buy:disabled{opacity:.35;cursor:not-allowed;background:var(--border);color:var(--muted);}
+
+  footer.note{color:var(--muted);font-size:12px;text-align:center;margin-top:10px;padding-bottom:20px;}
+</style>
+</head>
+<body>
+
+<!-- ============== FIREBASE CONFIG WARNING ============== -->
+<div id="configWarning" class="hidden" style="padding:40px 20px;">
+  <div class="config-warning">
+    <b>Firebase is not configured.</b><br>
+    Fill in the <code>firebaseConfig</code> object near the top of the JavaScript with your own project data.
+  </div>
+</div>
+
+<!-- ============== AUTH SCREEN (LOG IN ONLY) ============== -->
+<div id="authScreen" class="auth-screen hidden">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <svg viewBox="0 0 100 100" fill="none">
+        <ellipse cx="66" cy="76" rx="17" ry="9" fill="#5c3a1e"/>
+        <ellipse cx="50" cy="64" rx="34" ry="22" fill="#a5713c"/>
+        <ellipse cx="50" cy="37" rx="25" ry="21" fill="#a5713c"/>
+        <ellipse cx="50" cy="46" rx="14" ry="9" fill="#e8c79a"/>
+        <rect x="45.5" y="49" width="4" height="6" rx="1" fill="#fdf7ec"/>
+        <rect x="50.5" y="49" width="4" height="6" rx="1" fill="#fdf7ec"/>
+        <circle cx="33" cy="20" r="6" fill="#8a5d31"/>
+        <circle cx="67" cy="20" r="6" fill="#8a5d31"/>
+        <circle cx="39" cy="31" r="2.6" fill="#241206"/>
+        <circle cx="61" cy="31" r="2.6" fill="#241206"/>
+      </svg>
+      <div class="title">BEAVER<span>CLICKER</span></div>
+      <div class="sub">Log in with your BeanBlox account to play.</div>
+    </div>
+
+    <div id="authMsg" class="msg"></div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="loginUsername">Username</label>
+        <input type="text" id="loginUsername" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn" id="loginBtn">Log In</button>
+    </form>
+
+    <div class="auth-note">No account yet? Head over to BeanBlox to create one first — this game uses the same login.</div>
+  </div>
+</div>
+
+<!-- ============== GAME SCREEN ============== -->
+<div id="appScreen" class="hidden">
+  <div class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 100 100" fill="none">
+        <ellipse cx="66" cy="76" rx="17" ry="9" fill="#5c3a1e"/>
+        <ellipse cx="50" cy="64" rx="34" ry="22" fill="#a5713c"/>
+        <ellipse cx="50" cy="37" rx="25" ry="21" fill="#a5713c"/>
+        <ellipse cx="50" cy="46" rx="14" ry="9" fill="#e8c79a"/>
+        <circle cx="33" cy="20" r="6" fill="#8a5d31"/>
+        <circle cx="67" cy="20" r="6" fill="#8a5d31"/>
+      </svg>
+      <span>BEAVER<span>CLICKER</span></span>
+    </div>
+    <div class="user-chip">
+      <div class="mini-avatar" id="chipAvatar"></div>
+      <span class="name" id="chipName">-</span>
+      <button class="logout-btn" id="logoutBtn" title="Log out">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="game-wrap">
+    <!-- CLICKER -->
+    <div class="pool-card">
+      <div class="stat-row">
+        <div class="stick-count"><span id="stickCount">0</span> <span class="unit">sticks</span></div>
+      </div>
+      <div class="rate-row">+<b id="autoRate">0</b> sticks / sec</div>
+
+      <div class="pool" id="pool">
+        <div class="steam s1"></div>
+        <div class="steam s2"></div>
+        <div class="steam s3"></div>
+        <button class="beaver-btn" id="beaverBtn" type="button" aria-label="Click the beaver">
+          <svg viewBox="0 0 200 200" fill="none">
+            <ellipse cx="100" cy="150" rx="20" ry="8" fill="#000" opacity="0.15"/>
+            <ellipse cx="160" cy="145" rx="34" ry="18" fill="#5c3a1e" transform="rotate(-18 160 145)"/>
+            <ellipse cx="100" cy="132" rx="82" ry="52" fill="#a5713c"/>
+            <ellipse cx="100" cy="72" rx="52" ry="42" fill="#a5713c"/>
+            <ellipse cx="100" cy="86" rx="28" ry="19" fill="#e8c79a"/>
+            <ellipse cx="100" cy="80" rx="7" ry="5.5" fill="#241206"/>
+            <rect x="91" y="90" width="8" height="12" rx="2" fill="#fdf7ec"/>
+            <rect x="101" y="90" width="8" height="12" rx="2" fill="#fdf7ec"/>
+            <circle cx="66" cy="35" r="11" fill="#8a5d31"/>
+            <circle cx="134" cy="35" r="11" fill="#8a5d31"/>
+            <circle cx="66" cy="35" r="5.5" fill="#6b4726"/>
+            <circle cx="134" cy="35" r="5.5" fill="#6b4726"/>
+            <circle cx="80" cy="58" r="5" fill="#241206"/>
+            <circle cx="120" cy="58" r="5" fill="#241206"/>
+            <circle cx="81.5" cy="56.5" r="1.6" fill="#fff"/>
+            <circle cx="121.5" cy="56.5" r="1.6" fill="#fff"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="click-hint">Click the beaver to earn sticks</div>
+      <div class="click-power">+<span id="clickPowerVal">1</span> per click</div>
+    </div>
+
+    <!-- SHOP -->
+    <div class="shop-card">
+      <h2>Upgrades</h2>
+      <p class="muted">Spend sticks to grow your beaver colony.</p>
+      <div id="upgradeList"></div>
+    </div>
+  </div>
+
+  <footer class="note">Progress is saved automatically to your BeanBlox account.</footer>
+</div>
+
+<!-- ============== FIREBASE SDK (via cdnjs) ============== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-auth-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-firestore-compat.min.js"></script>
+
+<script>
+/* =========================================================
+   FIREBASE CONFIG — same project as BeanBlox
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyAM0xa6VPoiA9zr-r2BMynHfrQ6n4nQyFU",
+  authDomain: "playzone-acafc.firebaseapp.com",
+  projectId: "playzone-acafc",
+  storageBucket: "playzone-acafc.firebasestorage.app",
+  messagingSenderId: "205790490959",
+  appId: "1:205790490959:web:51d5f0b6d970fde78f953a"
+};
+/* ========================================================= */
+
+let auth, db;
+let firebaseReady = false;
+
+function isConfigFilled(cfg){
+  return cfg.apiKey && !cfg.apiKey.includes("YOUR_") && cfg.projectId && !cfg.projectId.includes("YOUR_");
+}
+
+if (isConfigFilled(firebaseConfig)) {
+  try{
+    firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    db = firebase.firestore();
+    firebaseReady = true;
+  }catch(e){
+    console.error("Firebase init error:", e);
+  }
+}
+
+/* =========================================================
+   SOUND (tiny, generated — no files)
+   ========================================================= */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let actx = null;
+function beep(freq, duration, type='sine', vol=0.12){
+  try{
+    if(!actx) actx = new AudioCtx();
+    if(actx.state === 'suspended') actx.resume();
+    const osc = actx.createOscillator();
+    const gain = actx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, actx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + duration);
+    osc.connect(gain).connect(actx.destination);
+    osc.start();
+    osc.stop(actx.currentTime + duration);
+  }catch(e){ /* audio unavailable, ignore */ }
+}
+const sfx = {
+  click: () => beep(500 + Math.random()*120, 0.07, 'square', 0.08),
+  buy:   () => { beep(500,0.08); setTimeout(()=>beep(760,0.12),80); },
+  error: () => beep(150, 0.2, 'sawtooth', 0.1),
+  nav:   () => beep(440, 0.07, 'triangle', 0.1),
+};
+
+/* =========================================================
+   UPGRADES
+   ========================================================= */
+const UPGRADES = [
+  { id:'baby',    name:'Baby Beaver',   desc:'+1 stick per click',    baseCost:15,    type:'click', amount:1,  icon:'tooth' },
+  { id:'friend',  name:'Beaver Friend', desc:'+1 stick / sec',        baseCost:60,    type:'auto',  amount:1,  icon:'friends' },
+  { id:'dam',     name:'Log Pile',      desc:'+5 sticks per click',   baseCost:400,   type:'click', amount:5,  icon:'log' },
+  { id:'farm',    name:'Beaver Lodge',  desc:'+8 sticks / sec',       baseCost:900,   type:'auto',  amount:8,  icon:'lodge' },
+  { id:'golden',  name:'Golden Beaver', desc:'+25 sticks per click',  baseCost:6500,  type:'click', amount:25, icon:'star' },
+  { id:'kingdom', name:'Beaver Kingdom',desc:'+60 sticks / sec',      baseCost:15000, type:'auto',  amount:60, icon:'crown' },
+];
+const UPGRADE_ICONS = {
+  tooth:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3c-2.2 0-4 1.9-4 4.6 0 2.7.9 3.9 1.1 6.6.2 2.4.7 6.8 2.4 6.8 1.4 0 1.5-3 1.5-5 0-.9.4-1.6 1-1.6s1 .7 1 1.6c0 2 .1 5 1.5 5 1.7 0 2.2-4.4 2.4-6.8.2-2.7 1.1-3.9 1.1-6.6C16 4.9 14.2 3 12 3c-.9 0-1.4.7-2 .7S8.9 3 8 3Z"/></svg>',
+  friends: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="10" r="4"/><circle cx="16.5" cy="12" r="3.2"/><path d="M3.5 20c0-3.3 2.5-5.6 5.5-5.6s5.5 2.3 5.5 5.6"/></svg>',
+  log:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="9" width="20" height="6" rx="3"/><circle cx="4.2" cy="12" r="1.8"/><circle cx="19.8" cy="12" r="1.8"/></svg>',
+  lodge:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20 12 5l9 15Z"/><path d="M9 20v-6h6v6"/></svg>',
+  star:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9L5.7 21l1.7-7L2 9.2l7.1-.6L12 2Z"/></svg>',
+  crown:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18h18M4 18l-1.4-9 5 4L12 6l4.4 7 5-4L20 18"/></svg>',
+};
+const COST_SCALE = 1.15;
+
+function upgradeCost(def, ownedCount){
+  return Math.round(def.baseCost * Math.pow(COST_SCALE, ownedCount));
+}
+
+/* =========================================================
+   GAME STATE
+   ========================================================= */
+let currentUid = null;
+let currentUsername = null;
+let sticks = 0;
+let owned = {}; // { upgradeId: count }
+let saveTimer = null;
+let autoTimer = null;
+
+function computeClickPower(){
+  let power = 1;
+  UPGRADES.forEach(u => { if(u.type === 'click') power += (owned[u.id]||0) * u.amount; });
+  return power;
+}
+function computeAutoRate(){
+  let rate = 0;
+  UPGRADES.forEach(u => { if(u.type === 'auto') rate += (owned[u.id]||0) * u.amount; });
+  return rate;
+}
+
+function fmt(n){
+  n = Math.floor(n);
+  return n.toLocaleString('en-US');
+}
+
+function renderStats(){
+  document.getElementById('stickCount').textContent = fmt(sticks);
+  document.getElementById('autoRate').textContent = fmt(computeAutoRate());
+  document.getElementById('clickPowerVal').textContent = fmt(computeClickPower());
+}
+
+function renderShop(){
+  const box = document.getElementById('upgradeList');
+  box.innerHTML = UPGRADES.map(def => {
+    const count = owned[def.id] || 0;
+    const cost = upgradeCost(def, count);
+    const canAfford = sticks >= cost;
+    return `<div class="upgrade ${canAfford ? 'affordable' : ''}">
+      <div class="u-icon">${UPGRADE_ICONS[def.icon]}</div>
+      <div class="u-info">
+        <div class="u-name">${def.name} <span class="u-owned">x${count}</span></div>
+        <div class="u-desc">${def.desc}</div>
+      </div>
+      <button class="u-buy" data-id="${def.id}" ${canAfford ? '' : 'disabled'}>${fmt(cost)} sticks</button>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.u-buy').forEach(btn => {
+    btn.addEventListener('click', () => buyUpgrade(btn.dataset.id));
+  });
+}
+
+function buyUpgrade(id){
+  const def = UPGRADES.find(u => u.id === id);
+  if(!def) return;
+  const count = owned[id] || 0;
+  const cost = upgradeCost(def, count);
+  if(sticks < cost) { sfx.error(); return; }
+  sticks -= cost;
+  owned[id] = count + 1;
+  sfx.buy();
+  renderStats();
+  renderShop();
+  scheduleSave();
+}
+
+/* ---------- clicking the beaver ---------- */
+const beaverBtn = document.getElementById('beaverBtn');
+const poolEl = document.getElementById('pool');
+beaverBtn.addEventListener('click', (e) => {
+  const power = computeClickPower();
+  sticks += power;
+  renderStats();
+  renderShop();
+  scheduleSave();
+  sfx.click();
+
+  beaverBtn.classList.remove('bump');
+  void beaverBtn.offsetWidth; // restart animation
+  beaverBtn.classList.add('bump');
+
+  spawnFloater(power, e);
+  spawnRipple();
+});
+
+function spawnFloater(power, e){
+  const rect = poolEl.getBoundingClientRect();
+  const x = (e.clientX ?? rect.left + rect.width/2) - rect.left + (Math.random()*30 - 15);
+  const y = (e.clientY ?? rect.top + rect.height/2) - rect.top;
+  const el = document.createElement('div');
+  el.className = 'floater';
+  el.textContent = '+' + fmt(power);
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  poolEl.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+function spawnRipple(){
+  const el = document.createElement('div');
+  el.className = 'ripple';
+  poolEl.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('animate'));
+  setTimeout(() => el.remove(), 750);
+}
+
+/* ---------- auto income ---------- */
+function startAutoLoop(){
+  if(autoTimer) clearInterval(autoTimer);
+  autoTimer = setInterval(() => {
+    const rate = computeAutoRate();
+    if(rate > 0){
+      sticks += rate / 4; // ticks 4x/sec for smoothness
+      renderStats();
+      renderShop();
+      scheduleSave();
+    }
+  }, 250);
+}
+
+/* =========================================================
+   SAVE / LOAD (Firestore: beaverClicker/{uid})
+   ========================================================= */
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveProgress, 2000);
+}
+
+async function saveProgress(){
+  if(!currentUid) return;
+  try{
+    await db.collection('beaverClicker').doc(currentUid).set({
+      sticks: Math.floor(sticks),
+      owned: owned,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  }catch(e){
+    console.error('Failed to save progress:', e);
+  }
+}
+
+async function loadProgress(uid){
+  const snap = await db.collection('beaverClicker').doc(uid).get();
+  if(snap.exists){
+    const data = snap.data();
+    sticks = data.sticks || 0;
+    owned = data.owned || {};
+  }else{
+    sticks = 0;
+    owned = {};
+  }
+}
+
+/* =========================================================
+   AUTH — LOG IN ONLY (accounts are created on BeanBlox)
+   ========================================================= */
+/* =========================================================
+   AVATAR RENDERING — same scheme as BeanBlox, so profile
+   photos / icons set there show up here too.
+   ========================================================= */
+const AVATAR_ICONS = {
+  circle:   {bg:'#f5c518', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>'},
+  bolt:     {bg:'#c99f0e', svg:'<svg viewBox="0 0 24 24" fill="#111"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>'},
+  star:     {bg:'#e0b012', svg:'<svg viewBox="0 0 24 24" fill="#111"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9L5.7 21l1.7-7L2 9.2l7.1-.6L12 2Z"/></svg>'},
+  hex:      {bg:'#f5c518', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2"><path d="M12 2l8 4.5v11L12 22l-8-4.5v-11L12 2Z"/></svg>'},
+  diamond:  {bg:'#d6ad10', svg:'<svg viewBox="0 0 24 24" fill="#111"><path d="M12 2 2 9l10 13L22 9 12 2Z"/></svg>'},
+  skull:    {bg:'#000', svg:'<svg viewBox="0 0 24 24" fill="none" stroke="#f5c518" stroke-width="2"><circle cx="12" cy="10" r="7"/><path d="M9 17v3M15 17v3M9 10h.01M15 10h.01"/></svg>'},
+};
+const DEFAULT_AVATAR = 'circle';
+
+function renderAvatarIcon(key, size){
+  const icon = AVATAR_ICONS[key] || AVATAR_ICONS[DEFAULT_AVATAR];
+  return `<div style="width:100%;height:100%;border-radius:50%;background:${icon.bg};display:flex;align-items:center;justify-content:center;">
+    <div style="width:${Math.round(size*0.55)}px;height:${Math.round(size*0.55)}px;">${icon.svg}</div>
+  </div>`;
+}
+
+// Renders either the BeanBlox profile photo (if any) or the default fallback icon.
+function renderAvatarContent(userDoc, size){
+  if(userDoc && userDoc.avatarPhoto){
+    return `<img src="${userDoc.avatarPhoto}" alt="Profile picture">`;
+  }
+  return renderAvatarIcon(userDoc ? userDoc.avatarIcon : null, size);
+}
+
+const INTERNAL_DOMAIN = "@beanblox.internal";
+
+function setAuthMsg(text, type){
+  const m = document.getElementById('authMsg');
+  m.textContent = text;
+  m.className = 'msg ' + type;
+}
+function clearAuthMsg(){
+  const m = document.getElementById('authMsg');
+  m.className = 'msg';
+  m.textContent = '';
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearAuthMsg();
+  const usernameRaw = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const usernameLower = usernameRaw.toLowerCase();
+  const btn = document.getElementById('loginBtn');
+
+  btn.disabled = true; btn.textContent = 'Logging in...';
+  try{
+    const unameSnap = await db.collection('usernames').doc(usernameLower).get();
+    if(!unameSnap.exists){
+      setAuthMsg('No account with that username.', 'error');
+      sfx.error();
+      btn.disabled = false; btn.textContent = 'Log In';
+      return;
+    }
+    const uid = unameSnap.data().uid;
+    const userSnap = await db.collection('users').doc(uid).get();
+    if(!userSnap.exists){
+      setAuthMsg('Account error. Please contact support.', 'error');
+      btn.disabled = false; btn.textContent = 'Log In';
+      return;
+    }
+    const internalEmail = userSnap.data().internalEmail;
+    await auth.signInWithEmailAndPassword(internalEmail, password);
+  }catch(err){
+    console.error(err);
+    sfx.error();
+    if(err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'){
+      setAuthMsg('Incorrect password.', 'error');
+    } else {
+      setAuthMsg('Login error: ' + (err.message || 'unknown error'), 'error');
+    }
+  }
+  btn.disabled = false; btn.textContent = 'Log In';
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  clearInterval(autoTimer);
+  await saveProgress();
+  await auth.signOut();
+  sfx.nav();
+});
+
+function showAuth(){
+  document.getElementById('authScreen').classList.remove('hidden');
+  document.getElementById('appScreen').classList.add('hidden');
+}
+function showApp(){
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('appScreen').classList.remove('hidden');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  if(!firebaseReady){
+    document.getElementById('configWarning').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('authScreen').classList.remove('hidden');
+
+  auth.onAuthStateChanged(async (user) => {
+    if(user){
+      currentUid = user.uid;
+      try{
+        const userSnap = await db.collection('users').doc(user.uid).get();
+        const userData = userSnap.exists ? userSnap.data() : null;
+        currentUsername = userData ? userData.username : 'Player';
+        document.getElementById('chipName').textContent = currentUsername;
+        document.getElementById('chipAvatar').innerHTML = renderAvatarContent(userData, 26);
+
+        await loadProgress(user.uid);
+        renderStats();
+        renderShop();
+        startAutoLoop();
+        showApp();
+      }catch(err){
+        console.error('Failed to load game data:', err);
+        await auth.signOut();
+        showAuth();
+        setAuthMsg('Could not load your account. Please try again.', 'error');
+      }
+    } else {
+      currentUid = null;
+      currentUsername = null;
+      clearInterval(autoTimer);
+      showAuth();
+    }
+  });
+});
+
+// best-effort save when the tab is closed / hidden
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'hidden' && currentUid) saveProgress();
+});
+window.addEventListener('beforeunload', () => {
+  if(currentUid) saveProgress();
+});
+</script>
+</body>
+</html>
