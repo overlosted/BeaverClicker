@@ -388,10 +388,18 @@ if (isConfigFilled(firebaseConfig)) {
    ========================================================= */
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let actx = null;
-function beep(freq, duration, type='sine', vol=0.12){
+// Synced from the account's users/{uid}.sfxVolume field (same setting as
+// BeanBlox's Settings page) once logged in. Default until then: 40%.
+let currentSfxVolume = 40;
+function getVolume(){
+  return Math.min(1, Math.max(0, currentSfxVolume / 100)) * 0.5; // scaled so "100%" isn't too loud
+}
+function beep(freq, duration, type='sine', relVol=0.5){
   try{
     if(!actx) actx = new AudioCtx();
     if(actx.state === 'suspended') actx.resume();
+    const vol = getVolume() * relVol;
+    if(vol <= 0) return;
     const osc = actx.createOscillator();
     const gain = actx.createGain();
     osc.type = type;
@@ -404,10 +412,10 @@ function beep(freq, duration, type='sine', vol=0.12){
   }catch(e){ /* audio unavailable, ignore */ }
 }
 const sfx = {
-  click: () => beep(500 + Math.random()*120, 0.07, 'square', 0.08),
-  buy:   () => { beep(500,0.08); setTimeout(()=>beep(760,0.12),80); },
-  error: () => beep(150, 0.2, 'sawtooth', 0.1),
-  nav:   () => beep(440, 0.07, 'triangle', 0.1),
+  click: () => beep(500 + Math.random()*120, 0.07, 'square', 0.4),
+  buy:   () => { beep(500,0.08,'sine',0.6); setTimeout(()=>beep(760,0.12,'sine',0.6),80); },
+  error: () => beep(150, 0.2, 'sawtooth', 0.5),
+  nav:   () => beep(440, 0.07, 'triangle', 0.5),
 };
 
 /* =========================================================
@@ -703,6 +711,9 @@ window.addEventListener('DOMContentLoaded', () => {
         currentUsername = userData ? userData.username : 'Player';
         document.getElementById('chipName').textContent = currentUsername;
         document.getElementById('chipAvatar').innerHTML = renderAvatarContent(userData, 26);
+        currentSfxVolume = (userData && userData.sfxVolume !== undefined && userData.sfxVolume !== null)
+          ? userData.sfxVolume
+          : 40;
 
         await loadProgress(user.uid);
         renderStats();
@@ -718,6 +729,7 @@ window.addEventListener('DOMContentLoaded', () => {
     } else {
       currentUid = null;
       currentUsername = null;
+      currentSfxVolume = 40;
       clearInterval(autoTimer);
       showAuth();
     }
